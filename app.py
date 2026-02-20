@@ -117,7 +117,7 @@ async def _create_jira_from_chat_impl(
     if not skip_trigger_check and not message_has_trigger(message):
         raise HTTPException(
             status_code=400,
-            detail="Message must contain #TeamsJIRABugBot. Use skip_trigger_check=true to test without trigger.",
+            detail="Message must contain #ZProdBug or #TeamsJIRABugBot. Use skip_trigger_check=true to test without trigger.",
         )
     customer_name = (customer_name_override or "").strip() if customer_name_override else None
     if not customer_name:
@@ -165,7 +165,7 @@ async def create_jira_from_chat(request: Request):
     Accepts:
       - application/json: { "message", "customer_name?", "skip_trigger_check?" }
       - multipart/form-data: message, customer_name?, skip_trigger_check?, screenshots[] (files)
-    Trigger: message must contain #TeamsJIRABugBot (unless skip_trigger_check=true). Component defaults to RA_FE.
+    Trigger: message must contain #ZProdBug or #TeamsJIRABugBot (unless skip_trigger_check=true). Component defaults to RA_FE.
     """
     content_type = (request.headers.get("content-type") or "").split(";")[0].strip().lower()
     message: str

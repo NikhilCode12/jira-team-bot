@@ -39,9 +39,12 @@ def extract_customer_name(message: str) -> str:
 
 def message_has_trigger(message: str) -> bool:
     """
-    Check if message contains #TeamsJIRABugBot. Only this trigger is required.
+    Check if message contains #ZProdBug or #TeamsJIRABugBot. Either trigger works.
     """
     if not message or not isinstance(message, str):
         return False
     text = message.strip()
-    return "#TeamsJIRABugBot" in text or "TeamsJIRABugBot" in text
+    return (
+        "#ZProdBug" in text or "ZProdBug" in text or
+        "#TeamsJIRABugBot" in text or "TeamsJIRABugBot" in text
+    )

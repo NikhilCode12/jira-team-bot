@@ -97,11 +97,11 @@
   <div class="container">
     <p class="back"><a href="/">← Back to main form</a></p>
     <h1>Test Teams → Jira</h1>
-    <p class="sub">Simulate a Teams message. Message must contain <strong>#TeamsJIRABugBot</strong>. Customer name is taken from the message (e.g. "Customer: Acme") or NA. Component defaults to <strong>RA_FE</strong>. You can attach screenshots/images (up to 4).</p>
+    <p class="sub">Simulate a Teams message. Message must contain <strong>#ZProdBug</strong> or <strong>#TeamsJIRABugBot</strong>. Customer name is taken from the message (e.g. "Customer: Acme") or NA. Component defaults to <strong>RA_FE</strong>. You can attach screenshots/images (up to 4).</p>
     <div class="card">
       <form id="chatForm">
         <label for="message">Message (as it would appear in Teams)</label>
-        <textarea id="message" name="message" placeholder="#TeamsJIRABugBot&#10;Customer: Acme Corp&#10;Login fails on Safari when using SSO."></textarea>
+        <textarea id="message" name="message" placeholder="#ZProdBug&#10;Customer: Acme Corp&#10;Login fails on Safari when using SSO."></textarea>
         <label for="customerOverride">Customer name override (leave blank to auto-extract from message)</label>
         <input type="text" id="customerOverride" name="customer_name" placeholder="e.g. Acme Corp or leave blank" />
         <label for="screenshots">Screenshots / images (optional, up to 4)</label>
@@ -109,7 +109,7 @@
         <p class="meta" style="font-size:0.75rem; color: var(--text-muted); margin-top:0.25rem;">PNG, JPG, etc. Same as Teams message attachments.</p>
         <div class="checkbox">
           <input type="checkbox" id="skipTrigger" name="skip_trigger_check" />
-          <label for="skipTrigger" style="margin-top:0">Skip trigger check (test without #TeamsJIRABugBot)</label>
+          <label for="skipTrigger" style="margin-top:0">Skip trigger check (test without #ZProdBug / #TeamsJIRABugBot)</label>
         </div>
         <button type="submit" class="btn" id="submitBtn">Create Jira from message</button>
       </form>
