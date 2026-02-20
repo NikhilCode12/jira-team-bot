@@ -182,6 +182,33 @@ async def _create_jira_from_chat_impl(
     }
 
 
+@app.post("/add-attachment/{issue_key}")
+async def add_attachment_to_issue(
+    issue_key: str,
+    file: UploadFile = File(..., description="File to attach"),
+):
+    """
+    Add a single attachment to an existing Jira issue.
+    Use this after creating an issue to add screenshots/files.
+    """
+    if not issue_key or not issue_key.strip():
+        raise HTTPException(status_code=422, detail="issue_key is required")
+    if not file or not file.filename:
+        raise HTTPException(status_code=422, detail="file is required")
+
+    content = await file.read()
+    if not content:
+        raise HTTPException(status_code=422, detail="file is empty")
+
+    ct = file.content_type or "application/octet-stream"
+    try:
+        add_attachments(issue_key.strip(), [(file.filename, content, ct)])
+    except ValueError as e:
+        raise HTTPException(status_code=502, detail=str(e))
+
+    return {"status": "ok", "issue_key": issue_key, "filename": file.filename}
+
+
 @app.post("/create-jira-from-chat")
 async def create_jira_from_chat(request: Request):
     """
