@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Test Teams → Jira</title>
+  <style>
+    :root {
+      --bg: #f6f8fa;
+      --card: #ffffff;
+      --border: #e1e4e8;
+      --primary: #0969da;
+      --primary-hover: #0550ae;
+      --text: #1f2328;
+      --text-muted: #656d76;
+      --error-bg: #ffebe9;
+      --error-text: #cf222e;
+      --success-bg: #dafbe1;
+      --radius: 8px;
+      --shadow: 0 1px 3px rgba(0,0,0,.06);
+    }
+    * { box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      margin: 0;
+      padding: 2rem 1rem;
+      min-height: 100vh;
+      line-height: 1.5;
+    }
+    .container { max-width: 640px; margin: 0 auto; }
+    h1 { font-size: 1.5rem; font-weight: 600; margin: 0 0 0.5rem; }
+    .sub { font-size: 0.875rem; color: var(--text-muted); margin-bottom: 1.5rem; }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 1.5rem;
+      margin-bottom: 1rem;
+    }
+    label { display: block; font-size: 0.875rem; font-weight: 500; margin-top: 1rem; color: var(--text); }
+    label:first-child { margin-top: 0; }
+    textarea {
+      width: 100%;
+      padding: 0.75rem;
+      font-size: 0.875rem;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      min-height: 140px;
+      resize: vertical;
+    }
+    textarea:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(9, 105, 218, 0.15);
+    }
+    input[type="text"] {
+      width: 100%;
+      padding: 0.5rem 0.75rem;
+      font-size: 0.875rem;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+    }
+    .checkbox { display: flex; align-items: center; gap: 0.5rem; margin-top: 1rem; }
+    .checkbox input { width: auto; margin: 0; }
+    .btn {
+      display: inline-block;
+      margin-top: 1rem;
+      padding: 0.5rem 1rem;
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: #fff;
+      background: var(--primary);
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    .btn:hover { background: var(--primary-hover); }
+    .btn:disabled { opacity: 0.6; cursor: not-allowed; }
+    .result {
+      margin-top: 1rem;
+      padding: 1rem;
+      border-radius: 6px;
+      font-size: 0.875rem;
+    }
+    .result.error { background: var(--error-bg); color: var(--error-text); }
+    .result.success { background: var(--success-bg); color: var(--text); }
+    .result a { color: var(--primary); }
+    .back { font-size: 0.875rem; margin-bottom: 1rem; }
+    .back a { color: var(--primary); text-decoration: none; }
+    .back a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <p class="back"><a href="/">← Back to main form</a></p>
+    <h1>Test Teams → Jira</h1>
+    <p class="sub">Simulate a Teams message. Message must contain <strong>#TeamsJIRABugBot</strong>. Customer name is taken from the message (e.g. "Customer: Acme") or NA. Component defaults to <strong>RA_FE</strong>. You can attach screenshots/images (up to 4).</p>
+    <div class="card">
+      <form id="chatForm">
+        <label for="message">Message (as it would appear in Teams)</label>
+        <textarea id="message" name="message" placeholder="#TeamsJIRABugBot&#10;Customer: Acme Corp&#10;Login fails on Safari when using SSO."></textarea>
+        <label for="customerOverride">Customer name override (leave blank to auto-extract from message)</label>
+        <input type="text" id="customerOverride" name="customer_name" placeholder="e.g. Acme Corp or leave blank" />
+        <label for="screenshots">Screenshots / images (optional, up to 4)</label>
+        <input type="file" id="screenshots" name="screenshots" accept="image/*" multiple />
+        <p class="meta" style="font-size:0.75rem; color: var(--text-muted); margin-top:0.25rem;">PNG, JPG, etc. Same as Teams message attachments.</p>
+        <div class="checkbox">
+          <input type="checkbox" id="skipTrigger" name="skip_trigger_check" />
+          <label for="skipTrigger" style="margin-top:0">Skip trigger check (test without #TeamsJIRABugBot)</label>
+        </div>
+        <button type="submit" class="btn" id="submitBtn">Create Jira from message</button>
+      </form>
+      <div id="result" class="result" style="display:none;"></div>
+    </div>
+  </div>
+  <script>
+    document.getElementById('chatForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const message = document.getElementById('message').value.trim();
+      const resultEl = document.getElementById('result');
+      const btn = document.getElementById('submitBtn');
+      resultEl.style.display = 'none';
+      if (!message) {
+        resultEl.textContent = 'Please enter a message.';
+        resultEl.className = 'result error';
+        resultEl.style.display = 'block';
+        return;
+      }
+      btn.disabled = true;
+      const formData = new FormData();
+      formData.append('message', message);
+      const customerOverride = document.getElementById('customerOverride').value.trim();
+      if (customerOverride) formData.append('customer_name', customerOverride);
+      if (document.getElementById('skipTrigger').checked) formData.append('skip_trigger_check', 'true');
+      const fileInput = document.getElementById('screenshots');
+      if (fileInput.files && fileInput.files.length) {
+        for (let i = 0; i < Math.min(fileInput.files.length, 4); i++)
+          formData.append('screenshots', fileInput.files[i]);
+      }
+      try {
+        const r = await fetch('/create-jira-from-chat', {
+          method: 'POST',
+          body: formData,
+        });
+        const data = await r.json().catch(() => ({}));
+        if (!r.ok) {
+          resultEl.innerHTML = 'Error: ' + (data.detail || r.statusText);
+          resultEl.className = 'result error';
+        } else {
+          resultEl.innerHTML = 'Created: <a href="' + data.url + '" target="_blank" rel="noopener">' + data.key + '</a><br>Customer: ' + (data.customer_name || 'NA');
+          resultEl.className = 'result success';
+        }
+        resultEl.style.display = 'block';
+      } catch (err) {
+        resultEl.textContent = 'Request failed: ' + err.message;
+        resultEl.className = 'result error';
+        resultEl.style.display = 'block';
+      }
+      btn.disabled = false;
+    });
+  </script>
+</body>
+</html>
