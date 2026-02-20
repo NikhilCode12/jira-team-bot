@@ -4,9 +4,12 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
 from config import JIRA_PROJECT, JIRA_EPIC_LINK, JIRA_LABELS, DEFAULT_CHAT_COMPONENT_NAME, DEFAULT_CHAT_COMPONENT_ID
-from jira_client import create_issue, get_components, get_priorities, get_assignable_users, add_attachments, get_default_chat_component_id
+from jira_client import (
+    create_issue, get_components, get_priorities, get_assignable_users, add_attachments,
+    get_default_chat_component_id, get_user_account_id_by_name, get_priority_id_by_name
+)
 from llm_client import generate_summary_only
-from chat_utils import extract_customer_name, message_has_trigger
+from chat_utils import extract_customer_name, message_has_trigger, extract_assignee, extract_priority, clean_message_for_jira
 
 app = FastAPI(title="Feedback to Jira")
 app.mount("/static", StaticFiles(directory="static"), name="static")
@@ -119,14 +122,24 @@ async def _create_jira_from_chat_impl(
             status_code=400,
             detail="Message must contain #ZProdBug or #TeamsJIRABugBot. Use skip_trigger_check=true to test without trigger.",
         )
+
     customer_name = (customer_name_override or "").strip() if customer_name_override else None
     if not customer_name:
         customer_name = extract_customer_name(message)
+
+    assignee_name = extract_assignee(message, default="Aeras Alvi")
+    assignee_account_id = get_user_account_id_by_name(JIRA_PROJECT, assignee_name)
+
+    priority_name = extract_priority(message)
+    priority_id = get_priority_id_by_name(priority_name) if priority_name else None
+
+    cleaned_message = clean_message_for_jira(message)
+
     try:
-        summary = generate_summary_only(message)
+        summary = generate_summary_only(cleaned_message)
     except ValueError as e:
         raise HTTPException(status_code=503, detail=str(e))
-    # Resolve default component: try RA_FE, RA FE, RA-FE, then env ID, then first component
+
     component_id = get_default_chat_component_id(
         JIRA_PROJECT,
         [DEFAULT_CHAT_COMPONENT_NAME, "RA FE", "RA-FE"],
@@ -137,12 +150,16 @@ async def _create_jira_from_chat_impl(
             status_code=503,
             detail="Project requires a component. Set DEFAULT_CHAT_COMPONENT_ID in .env to your RA_FE component id, or add a component to the project.",
         )
+
     key, url = create_issue(
         summary,
-        message,
+        cleaned_message,
         component_id=component_id,
+        priority_id=priority_id,
+        assignee_account_id=assignee_account_id,
         customer_name=customer_name or "NA",
     )
+
     files_to_attach = []
     for f in (screenshot_files or [])[:4]:
         if f and getattr(f, "filename", None):
@@ -155,7 +172,14 @@ async def _create_jira_from_chat_impl(
             add_attachments(key, files_to_attach)
         except ValueError:
             pass
-    return {"key": key, "url": url, "customer_name": customer_name or "NA"}
+
+    return {
+        "key": key,
+        "url": url,
+        "customer_name": customer_name or "NA",
+        "assignee": assignee_name,
+        "priority": priority_name,
+    }
 
 
 @app.post("/create-jira-from-chat")

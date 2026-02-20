@@ -96,6 +96,30 @@ def get_assignable_users(project_key: str, query: str = "") -> list[dict]:
     ]
 
 
+def get_user_account_id_by_name(project_key: str, display_name: str) -> str | None:
+    """Find a user's accountId by display name (case-insensitive partial match)."""
+    if not display_name or not display_name.strip():
+        return None
+    name_lower = display_name.strip().lower()
+    users = get_assignable_users(project_key, display_name)
+    for u in users:
+        if name_lower in (u.get("displayName") or "").lower():
+            return u.get("accountId")
+    return None
+
+
+def get_priority_id_by_name(priority_name: str) -> str | None:
+    """Find priority ID by name (case-insensitive)."""
+    if not priority_name or not priority_name.strip():
+        return None
+    name_lower = priority_name.strip().lower()
+    priorities = get_priorities()
+    for p in priorities:
+        if (p.get("name") or "").lower() == name_lower:
+            return p.get("id")
+    return None
+
+
 def _description_to_atlassian_doc(text: str) -> dict:
     """Convert plain text to Atlassian Document Format (ADF) for description."""
     content = []
@@ -146,7 +170,7 @@ def create_issue(
             "summary": _sanitize_summary(summary),
             "description": _description_to_atlassian_doc(description),
             "issuetype": {"name": JIRA_ISSUE_TYPE},
-            "labels": [JIRA_LABELS],
+            "labels": [JIRA_LABELS, "ZProdBug"],
             # Required custom fields (values from form)
             JIRA_CF_ENVIRONMENT: {"value": env_val},
             JIRA_CF_CUSTOMER_REPORTED_BUG: {"value": crb_val},
