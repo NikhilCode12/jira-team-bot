@@ -1,0 +1,8 @@
+# Render Blueprint (optional). You can also create the Web Service from the dashboard.
+services:
+  - type: web
+    name: jira-team-utility
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app:app --host 0.0.0.0 --port $PORT
+    # Add env vars in Render Dashboard: Settings → Environment (JIRA_BASE_URL, JIRA_EMAIL, JIRA_API_TOKEN, GROQ_API_KEY, JIRA_PROJECT, etc.)
